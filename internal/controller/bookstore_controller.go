@@ -155,6 +155,7 @@ var (
 // SetupWithManager sets up the controller with the Manager.
 func (r *BookStoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	fmt.Println("In manager")
+	// checking deployment owner
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &appsv1.Deployment{}, OwnerKey, func(object client.Object) []string {
 		deployment := object.(*appsv1.Deployment)
 		owner := metav1.GetControllerOf(deployment)
@@ -168,7 +169,7 @@ func (r *BookStoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}); err != nil {
 		return err
 	}
-
+	// checking service owner
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Service{}, OwnerKey, func(object client.Object) []string {
 		service := object.(*corev1.Service)
 		owner := metav1.GetControllerOf(service)
