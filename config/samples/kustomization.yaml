@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- reader.com_v1_bookstore.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

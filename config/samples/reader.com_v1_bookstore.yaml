@@ -1,0 +1,10 @@
+apiVersion: reader.com.my.domain/v1
+kind: BookStore
+metadata:
+  name: bookstore-sample
+spec:
+  replicas: 3
+  name: bookstore
+  container:
+    image: sumon124816/k8s:new
+    port: 8000
