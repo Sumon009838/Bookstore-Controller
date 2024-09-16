@@ -8,3 +8,4 @@ spec:
   container:
     image: sumon124816/k8s:new
     port: 8000
+status:
