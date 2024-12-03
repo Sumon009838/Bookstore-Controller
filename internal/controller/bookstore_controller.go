@@ -25,6 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/klog/v2"
+	kmc "kmodules.xyz/client-go/client"
 	readercomv1 "my.domain/kubebuilder/api/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -79,9 +81,17 @@ func (r *BookStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err := r.Get(ctx, req.NamespacedName, &bk); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if bk.Status.Dep != true {
-		fmt.Println("deployment status updated")
-		bk.Status.Dep = true
+	var bs = bk.DeepCopy()
+	_, err := kmc.PatchStatus(ctx, r.Client, bs, func(obj client.Object) client.Object {
+		in := obj.(*readercomv1.BookStore)
+		if in.Status.State == "" {
+			in.Status.State = "running"
+		}
+		return in
+	})
+	if err != nil {
+		klog.Error("failed to update the book server")
+		return ctrl.Result{}, err
 	}
 
 	fmt.Println("finding deployment")
@@ -111,6 +121,19 @@ func (r *BookStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		fmt.Println("deployment updated")
 	}
+
+	bs = bk.DeepCopy()
+	_, err = kmc.PatchStatus(ctx, r.Client, bs, func(obj client.Object) client.Object {
+		in := obj.(*readercomv1.BookStore)
+		if in.Status.Dep == false {
+			in.Status.Dep = true
+		}
+		return in
+	})
+	if err != nil {
+		klog.Error("failed to update the book server")
+		return ctrl.Result{}, err
+	}
 	// getting service
 	fmt.Println("finding service")
 	var svc corev1.Service
@@ -137,12 +160,19 @@ func (r *BookStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		fmt.Println("service updated")
 	}
-
-	if bk.Status.Svc != true {
-		fmt.Println("service status updated")
-		bk.Status.Svc = true
+	bs = bk.DeepCopy()
+	_, err = kmc.PatchStatus(ctx, r.Client, bs, func(obj client.Object) client.Object {
+		in := obj.(*readercomv1.BookStore)
+		in.Status.State = "ready"
+		if in.Status.Svc == false {
+			in.Status.Svc = true
+		}
+		return in
+	})
+	if err != nil {
+		klog.Error("failed to update the book server")
+		return ctrl.Result{}, err
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -155,6 +185,7 @@ var (
 // SetupWithManager sets up the controller with the Manager.
 func (r *BookStoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	fmt.Println("In manager")
+	// checking deployment owner
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &appsv1.Deployment{}, OwnerKey, func(object client.Object) []string {
 		deployment := object.(*appsv1.Deployment)
 		owner := metav1.GetControllerOf(deployment)
@@ -168,7 +199,7 @@ func (r *BookStoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}); err != nil {
 		return err
 	}
-
+	// checking service owner
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Service{}, OwnerKey, func(object client.Object) []string {
 		service := object.(*corev1.Service)
 		owner := metav1.GetControllerOf(service)

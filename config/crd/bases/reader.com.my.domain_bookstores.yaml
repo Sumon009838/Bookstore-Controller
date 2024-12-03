@@ -62,6 +62,8 @@ spec:
             properties:
               dep:
                 type: boolean
+              state:
+                type: string
               svc:
                 type: boolean
             type: object

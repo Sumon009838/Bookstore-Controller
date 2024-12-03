@@ -32,8 +32,9 @@ type BookStoreSpec struct {
 
 // BookStoreStatus defines the observed state of BookStore
 type BookStoreStatus struct {
-	Dep bool `json:"dep,omitempty"`
-	Svc bool `json:"svc,omitempty"`
+	State string `json:"state,omitempty"`
+	Dep   bool   `json:"dep,omitempty"`
+	Svc   bool   `json:"svc,omitempty"`
 }
 
 // +kubebuilder:object:root=true
